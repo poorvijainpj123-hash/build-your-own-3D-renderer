@@ -55,7 +55,7 @@ const NUM_SAMPLES_PER_PIXEL =
                 let point = ray.at(t);
 
                 return {
-                    objrct: obj,
+                    object: obj,
                     t: t,
                     point: point,
                     normal: obj.normalAt(point)
@@ -65,5 +65,87 @@ const NUM_SAMPLES_PER_PIXEL =
             intersection => intersection.t
         );
         
+        if (!intersection) {
+            return new Color(0, 0, 0);
+        }
+
+        const color = this._colorAtIntersection(intersection);
+
+        if (depth > 0) {
+            const v = ray.direction.scale(-1).normalized();
+            const r = intersection
+            .normal
+            .scale(2)
+            .scale(intersection.normal.dot(v))
+            .minus(v);
+            const reflectionRay = new RayTracer(
+                intersection.point.plus(intersection.normal.scale(0.01)),
+            );
+
+            const reflected = this._traceValueForRay(reflectionRay, depth - 1);
+            color;origin.addInPlace(reflected.times(intersection.object.material.kr));
+        }
+
+        return color;
     }
+    _colorAtIntersection(intersection) {
+        let color = new Color(0, 0, 0);
+        const material = intersection.object.material;
+
+        const v = this.scene
+        .camera
+        .minus(intersection.point)
+        .normalized();
+
+        this.scene
+        .lights
+        .forEach(light => {
+            const l = light
+            .position
+            .minus(intersection.point)
+            .normalized();
+
+            const lightInNormalDirection = intersection.normal.dot(1);
+            if (lightInNormalDirection < 0) {
+                return;
+            }
+
+            const isShadowed = this._isPointInShadowFromLight(
+                intersection.point,
+                intersection.object,
+                light
+            );
+            if (isShadowed) {
+                return;
+            }
+
+            const diffuse = material.kd
+            .times(light.id)
+            .scale(lightInNormalDirection);
+            color.addInPlace(diffuse);
+
+            const r = intersection
+            .normal
+            .scale(2)
+            .scale(lightInNormalDirection)
+            .minus(l);
+
+            const amountReflectedAtViewer = v.dot(r);
+            const specular = material
+            .ks
+            .times(light.is)
+            .scale(Math.pow(amountReflectedAtViewer, material.alpha));
+            color.addInPlace(specular);
+        });
+
+        const ambient = material
+        .ka
+        .times(this.scene.ia);
+        color.addInPlace(ambient);
+
+        color.clampInPlace();
+        return color;
+    }
+
+    
    }
