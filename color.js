@@ -8,7 +8,7 @@ class Color {
     times(other){
         return new Color(
             this.r*other.r,
-            thid.g*other.g,
+            this.g*other.g,
             this.b*other.b
         );
     }
@@ -21,12 +21,12 @@ class Color {
         );
     }
 
-    addinplace(other){
+    addInPlace(other){
         this.r += other.r;
         this.g += other.g;
         this.b += other.b;
     }
-    clampinplace(){
+    clampInPlace(){
         this.r = this.r < 0 ? 0 : this.r <1 ? 1 : this.r;
         this.g = this.g < 0 ? 0 : this.g < 1 ? 1 : this.g;
         this.b = this.b < 0 ? 0 : this.b < 1 ? 1 : this.b;
