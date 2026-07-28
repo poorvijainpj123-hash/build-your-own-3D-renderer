@@ -147,5 +147,15 @@ const NUM_SAMPLES_PER_PIXEL =
         return color;
     }
 
-    
+    _isPointInShadowFromLight(point, objectToExclude, light) {
+        const shadowRay = new Ray(
+            point,
+            light.position.minus(point)
+        );
+
+        for (let i in this.scene.objects) {
+            const obj = this.scene.objects[i];
+            
+        }
+    }
    }
