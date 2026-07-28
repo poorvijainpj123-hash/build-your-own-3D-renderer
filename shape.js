@@ -22,7 +22,7 @@ class Sphere {
         const ts = [];
 
         const sub = (-b - sqrt) / (2 * a);
-        if(add >= 0) {
+        if(sub >= 0) {
             ts.push(add);
         }
 

@@ -10,24 +10,24 @@ const NUM_SAMPLES_PER_PIXEL =
         this.h = h;
     }
 
-    traceValueAtPixel(x, y) {
+    tracedValueAtPixel(x, y) {
         const color = new Color(0, 0, 0);
 
         for(let dx = 0; dx < NUM_SAMPLES_PER_DIRECTION; dx++) {
-            for (let dy = 0; dy < NUM_SAMPLES_PER_DIRECTION; dy) {
+            for (let dy = 0; dy < NUM_SAMPLES_PER_DIRECTION; dy++) {
                 const ray = this._rayForPixel(
                     x + dx / NUM_SAMPLES_PER_DIRECTION,
                     y + dy / NUM_SAMPLES_PER_DIRECTION
                 );
 
-                const sample = this._traceValueForRay(ray, MAX_BOUNCES);
+                const sample = this._tracedValueForRay(ray, MAX_BOUNCES);
                 color.addInPlace(sample.scale(1 / NUM_SAMPLES_PER_PIXEL));
             }
         }
         return color;
     }
 
-    _traceValueForRay(ray, depth) {
+    _tracedValueForRay(ray, depth) {
         function min(xs, f) {
             if (xs.length == 0) {
                 return null;
@@ -37,7 +37,7 @@ const NUM_SAMPLES_PER_PIXEL =
             let minElement = null;
             for (let x of xs) {
                 const value = f(x);
-                if (value < minvalue) {
+                if (value < minValue) {
                     minValue = value;
                     minElement = x;
                 }
@@ -78,12 +78,13 @@ const NUM_SAMPLES_PER_PIXEL =
             .scale(2)
             .scale(intersection.normal.dot(v))
             .minus(v);
-            const reflectionRay = new RayTracer(
+            const reflectionRay = new Ray(
                 intersection.point.plus(intersection.normal.scale(0.01)),
+                r
             );
 
-            const reflected = this._traceValueForRay(reflectionRay, depth - 1);
-            color;origin.addInPlace(reflected.times(intersection.object.material.kr));
+            const reflected = this._tracedValueForRay(reflectionRay, depth - 1);
+            color.addInPlace(reflected.times(intersection.object.material.kr));
         }
 
         return color;
@@ -155,7 +156,111 @@ const NUM_SAMPLES_PER_PIXEL =
 
         for (let i in this.scene.objects) {
             const obj = this.scene.objects[i];
-            
+            if (obj == objectToExclude) {
+                continue;
+            }
+
+            const t = obj.getIntersection(shadowRay);
+            if (t  && t <= 1) {
+                return true;
+            }
         }
+
+        return false;
+    }
+
+    _rayForPixel(x, y) {
+        const xt = x / this.w;
+        const yt = (this.h - y -1) / this.h;
+
+        const top = Vector3.lerp(
+            this.scene.imagePlane.topLeft,
+            this.scene.imagePlane.topRight,
+            xt
+        );
+
+        const bottom = Vector3.lerp(
+            this.scene.imagePlane.bottomLeft,
+            this.scene.imagePlane.bottomRight,
+            xt
+        );
+
+        const point = Vector3.lerp(bottom, top, yt);
+        return new Ray(
+            point,
+            point.minus(this.scene.camera)
+        );
     }
    }
+
+   const WIDTH = 256;
+   const HIEGHT = 192;
+
+   const SCENE = {
+    camera: new Vector3(0, 0, 2),
+    imagePlane: {
+        topLeft: new Vector3(-1.28, 0.86, -0.5),
+        topRight: new Vector3(1.28, 0.86, -0.5),
+        bottomLeft: new Vector3(-1.28, -0.86, -0.5),
+        bottomRight: new Vector3(1.28, -0.86, -0.5)
+    },
+    ia: new Color(0.5, 0.5, 0.5),
+    lights: [
+        {
+            position: new Vector3(-3, -0.5, 1),
+            id: new Color(0.8, 0.3, 0.3),
+            is: new Color(0.8, 0.8, 0.8)
+        },{
+            position: new Vector3(3, 2, 1),
+            id: new Color(0.4, 0.4, 0.9),
+            is: new Color(0.8, 0.8, 0.8)
+        }
+    ],
+    objects: [
+        new Sphere(
+            new Vector3(-1.1, 0.6, -1),
+            0.2,
+            {
+                ka: new Color(0.1, 0.1, 0.1),
+                kd: new Color(0.9, 0.5, 0.5),
+                ks: new Color(0.7, 0.7, 0.1),
+                alpha: 20,
+                kr: new Color(0.2, 0.1, 0.1)
+            }
+        ),
+        new  Sphere(
+            new Vector3(1.2, -0.5, -1.75),
+            0.4,
+            {
+                ka: new Color(0.1, 0.1, 0.1),
+                kd: new Color(0.1, 0.5, 0.1),
+                ks: new Color(0.7, 0.7, 0.7),
+                alpha: 20,
+                kr: new Color(0.8, 0.9, 0.8)
+            }
+        )
+    ]
+   };
+
+   const image = new Image(WIDTH, HIEGHT);
+   document.image = image;
+
+   const imageColorFromColor = color => ({
+    r: Math.floor(color.r * 255),
+    g: Math.floor(color.g * 255),
+    b: Math.floor(color.b * 255)
+   });
+
+   const tracer = new RayTracer(SCENE, WIDTH, HIEGHT);
+
+   for (let y = 0; y < HIEGHT; y++) {
+    for (let x = 0; x < WIDTH; x++) {
+        image.putPixel(
+            x,
+            y,
+            imageColorFromColor(tracer.tracedValueAtPixel(x, y))
+        );
+    }
+   }
+
+   image.renderInto(document.querySelector('body'));
