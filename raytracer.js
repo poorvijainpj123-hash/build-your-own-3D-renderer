@@ -1,4 +1,4 @@
-const MAX_BOUNCES = 3;
+const MAX_BOUNCES = 0;
 const NUM_SAMPLES_PER_DIRECTION = 2;
 const NUM_SAMPLES_PER_PIXEL = 
    NUM_SAMPLES_PER_DIRECTION * NUM_SAMPLES_PER_DIRECTION;
@@ -106,7 +106,7 @@ const NUM_SAMPLES_PER_PIXEL =
             .minus(intersection.point)
             .normalized();
 
-            const lightInNormalDirection = intersection.normal.dot(1);
+            const lightInNormalDirection = intersection.normal.dot(l);
             if (lightInNormalDirection < 0) {
                 return;
             }
@@ -135,7 +135,7 @@ const NUM_SAMPLES_PER_PIXEL =
             const specular = material
             .ks
             .times(light.is)
-            .scale(Math.pow(amountReflectedAtViewer, material.alpha));
+            .scale(Math.pow(Math.max(amountReflectedAtViewer, 0), material.alpha));
             color.addInPlace(specular);
         });
 
@@ -143,7 +143,7 @@ const NUM_SAMPLES_PER_PIXEL =
         .ka
         .times(this.scene.ia);
         color.addInPlace(ambient);
-
+        console.log(color.r, color.g, color.b);
         color.clampInPlace();
         return color;
     }
@@ -210,11 +210,12 @@ const NUM_SAMPLES_PER_PIXEL =
             position: new Vector3(-3, -0.5, 1),
             id: new Color(0.8, 0.3, 0.3),
             is: new Color(0.8, 0.8, 0.8)
-        },{
+        },
+        /*{
             position: new Vector3(3, 2, 1),
             id: new Color(0.4, 0.4, 0.9),
             is: new Color(0.8, 0.8, 0.8)
-        }
+        }*/
     ],
     objects: [
         new Sphere(
